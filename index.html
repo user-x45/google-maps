@@ -71,7 +71,12 @@
         credentials: "omit",
         redirect: "follow",
       });
-      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (!res.ok) {
+        const blocked = /\/sorry\//.test(res.url);
+        throw new Error(
+          "HTTP " + res.status + (blocked ? "(Googleにブロックされています)" : "")
+        );
+      }
       const html = await res.text();
       const doc = injectBase(html, res.url);
       document.open();
