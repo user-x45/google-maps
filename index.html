@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Google Maps</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2937;
+    --accent: #2563eb;
+    --error: #dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111827;
+      --fg: #f3f4f6;
+      --accent: #60a5fa;
+      --error: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
+    text-align: center;
+  }
+  #status.error { color: var(--error); }
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button[hidden] { display: none; }
+</style>
+</head>
+<body>
+<p id="status">読み込み中...</p>
+<button id="retry" type="button" hidden>再試行</button>
+<script>
+  const SERVER = "https://maps.user-x45.workers.dev";
+  const statusEl = document.getElementById("status");
+  const retryButton = document.getElementById("retry");
+
+  function injectBase(html, baseHref) {
+    const tag = '<base href="' + baseHref + '">';
+    if (/<head[^>]*>/i.test(html)) {
+      return html.replace(/<head[^>]*>/i, (m) => m + tag);
+    }
+    return tag + html;
+  }
+
+  async function loadMap() {
+    retryButton.hidden = true;
+    statusEl.className = "";
+    statusEl.textContent = "読み込み中...";
+    try {
+      const res = await fetch(SERVER + "/maps", {
+        credentials: "omit",
+        redirect: "follow",
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const html = await res.text();
+      const doc = injectBase(html, res.url);
+      document.open();
+      document.write(doc);
+      document.close();
+    } catch (e) {
+      statusEl.className = "error";
+      statusEl.textContent = "取得に失敗しました: " + e.message;
+      retryButton.hidden = false;
+    }
+  }
+
+  retryButton.addEventListener("click", loadMap);
+  loadMap();
+</script>
+</body>
+</html>
